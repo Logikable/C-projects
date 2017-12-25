@@ -4,23 +4,23 @@
 #include <string.h>
 #include <time.h>
 
-struct node {
+struct gtree_node {
 	char *name;
 	void *value;
-	struct node *parent;
-	struct node *prev;
-	struct node *next; // right brother
-	struct node *first_child;
-	struct node *last_child;
+	struct gtree_node *parent;
+	struct gtree_node *prev;
+	struct gtree_node *next; // right brother
+	struct gtree_node *first_child;
+	struct gtree_node *last_child;
 };
 
-struct tree {
+struct gtree {
 	char *name;
-	struct node *root;
+	struct gtree_node *root;
 };
 
-struct node *tree_create_node(char *name, void *value) {
-	struct node *node = calloc(1, sizeof(struct node));
+struct gtree_node *tree_create_node(char *name, void *value) {
+	struct gtree_node *node = calloc(1, sizeof(struct gtree_node));
 	if (node == NULL) {
 		return NULL;
 	}
@@ -29,12 +29,12 @@ struct node *tree_create_node(char *name, void *value) {
 	return node;
 }
 
-struct tree *tree_create(char *name) {
+struct gtree *tree_create(char *name) {
 	if (name == NULL) {
 		return NULL;
 	}
 
-	struct tree *tree = malloc(sizeof(struct tree));
+	struct gtree *tree = malloc(sizeof(struct gtree));
 	if (tree == NULL) {
 		return NULL;
 	}
@@ -44,7 +44,7 @@ struct tree *tree_create(char *name) {
 	sprintf(buffer, "/%s", name);
 	char *root_name = strdup(buffer);
 
-	struct node *root = tree_create_node(root_name, NULL);
+	struct gtree_node *root = tree_create_node(root_name, NULL);
 	free(root_name);
 	if (root == NULL) {
 		return NULL;
@@ -55,7 +55,7 @@ struct tree *tree_create(char *name) {
 	return tree;
 }
 
-int tree_insert_child(struct node *parent, struct node *child) {
+int tree_insert_child(struct gtree_node *parent, struct gtree_node *child) {
 	if (parent == NULL || child == NULL) {
 		return 0;
 	}
@@ -70,7 +70,7 @@ int tree_insert_child(struct node *parent, struct node *child) {
 	return 1;
 }
 
-void node_destroy(struct node *node, void (func)(void *)) {
+void node_destroy(struct gtree_node *node, void (func)(void *)) {
 	free(node->name);
 	func(node->value);
 	if (node->next != NULL) {
@@ -82,7 +82,7 @@ void node_destroy(struct node *node, void (func)(void *)) {
 	free(node);
 }
 
-void tree_destroy(struct tree *tree, void (func)(void *)) {
+void tree_destroy(struct gtree *tree, void (func)(void *)) {
 	if (tree == NULL || func == NULL) {
 		return;
 	}
@@ -91,7 +91,7 @@ void tree_destroy(struct tree *tree, void (func)(void *)) {
 	free(tree);
 }
 
-int tree_remove_node(struct node *removed) {
+int tree_remove_node(struct gtree_node *removed) {
 	if (removed == NULL || removed->parent == removed) {	// root cannot be removed
 		return 0;
 	}
@@ -106,7 +106,7 @@ int tree_remove_node(struct node *removed) {
 	removed->last_child->next = removed->next;
 
 	// update parent of all children
-	struct node *cur_child = removed->first_child;
+	struct gtree_node *cur_child = removed->first_child;
 	cur_child->parent = removed->parent;
 	while (cur_child != removed->last_child) {
 		cur_child = cur_child->next;
@@ -114,7 +114,7 @@ int tree_remove_node(struct node *removed) {
 	}
 }
 
-struct node *tree_next_node(struct node *node) {
+struct gtree_node *tree_next_node(struct gtree_node *node) {
 	if (node == NULL) {
 		return NULL;
 	}
@@ -132,7 +132,7 @@ struct node *tree_next_node(struct node *node) {
 	return node->next;
 }
 
-void tree_walk_node(struct node *node, void (func)(void *)) {
+void tree_walk_node(struct gtree_node *node, void (func)(void *)) {
 	func(node->value);
 	if (node->next != NULL) {
 		tree_walk_node(node->next, func);
@@ -142,7 +142,7 @@ void tree_walk_node(struct node *node, void (func)(void *)) {
 	}
 }
 
-void tree_walk(struct tree *tree, void (func)(void *)) {
+void tree_walk(struct gtree *tree, void (func)(void *)) {
 	if (tree == NULL || func == NULL) {
 		return;
 	}
@@ -165,15 +165,15 @@ void test() {
 	const int ENTRIES = 1000000;
 	const int CHILDREN = 10;
 
-	struct tree *tree = tree_create("tree");
-	struct node **nodes = malloc(ENTRIES * sizeof(struct node *));
+	struct gtree *tree = tree_create("tree");
+	struct gtree_node **nodes = malloc(ENTRIES * sizeof(struct gtree_node *));
 	nodes[0] = tree->root;
 
 	for (int i = 1; i < ENTRIES; i++) {
 		char *buffer = malloc(10 * sizeof(char));
 		sprintf(buffer, "%d", i);
 
-		struct node *child = tree_create_node(buffer, buffer);
+		struct gtree_node *child = tree_create_node(buffer, buffer);
 		nodes[i] = child;
 
 		int parent = i / CHILDREN;
@@ -182,7 +182,7 @@ void test() {
 
 	tree_walk(tree, print);
 
-	struct node *next = tree->root;
+	struct gtree_node *next = tree->root;
 	while (next != NULL) {
 //		print(next->value);
 		next = tree_next_node(next);

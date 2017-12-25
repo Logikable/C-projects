@@ -51,17 +51,17 @@ bool is_operator(char *s) {
 	}
 	char first = s[0];
 	return first == '+' ||
-		first == '-' || first == '−' ||
-		first == '*' || first == '×' ||
-		first == '/' || first == '÷';
+		first == '-' ||
+		first == '*' ||
+		first == '/';
 }
 
 float evaluate(char operator, float operand1, float operand2) {
 	switch(operator) {
 		case '+': return operand1 + operand2;
-		case '-': case '−': return operand1 - operand2;
-		case '*': case '×': return operand1 * operand2;
-		case '/': case '÷': return operand1 / operand2;
+		case '-': return operand1 - operand2;
+		case '*': return operand1 * operand2;
+		case '/': return operand1 / operand2;
 		default: break;
 	}
 	return 0;
