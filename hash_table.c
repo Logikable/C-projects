@@ -24,6 +24,9 @@ struct hash_table *hash_create(int init_size) {
 		return NULL;
 	}
 	table->bins = calloc(init_size, sizeof(struct hash_bin_link *));
+	if (table->bins == NULL) {
+		return NULL;
+	}
 	table->size = 0;
 	table->capacity = init_size;
 	return table;
@@ -40,6 +43,10 @@ int hash_string(char *key) {
 }
 
 int hash_put(struct hash_table *table, char *key, void *value) {
+	if (table == NULL || key == NULL) {
+		return 0;
+	}
+	// resizing
 	if (table->size >= table->capacity * HASH_THRESHOLD) {
 		int new_capacity = 2 * table->capacity;
 		struct hash_bin_link **new_bins = calloc(new_capacity, sizeof(struct hash_bin_link *));
@@ -70,7 +77,7 @@ int hash_put(struct hash_table *table, char *key, void *value) {
 	if (new_link == NULL) {
 		return 0;
 	}
-	new_link->key = key;
+	new_link->key = strdup(key);
 	new_link->hash = hash_string(key);
 	new_link->value = value;
 
@@ -83,6 +90,10 @@ int hash_put(struct hash_table *table, char *key, void *value) {
 }
 
 void *hash_get(struct hash_table *table, char *key) {
+	if (table == NULL || key == NULL) {
+		return NULL;
+	}
+
 	struct hash_bin_link *link = table->bins[hash_string(key) % table->capacity];
 	while (link != NULL) {
 		if (strcmp(key, link->key) == 0) {
@@ -94,9 +105,13 @@ void *hash_get(struct hash_table *table, char *key) {
 }
 
 void hash_destroy(struct hash_table *table) {
+	if (table == NULL) {
+		return;
+	}
 	for (int i = 0; i < table->capacity; i++) {
 		struct hash_bin_link *link = table->bins[i];
 		while (link != NULL) {
+			free(link->key);
 			struct hash_bin_link *next = link->next;
 			free(link);
 			link = next;
@@ -106,7 +121,10 @@ void hash_destroy(struct hash_table *table) {
 	free(table);
 }
 
-void hash_walk(struct hash_table *table, void *(func)(char *key, void *value)) {
+void hash_walk(struct hash_table *table, void (func)(char *key, void *value)) {
+	if (table == NULL || func == NULL) {
+		return;
+	}
 	for (int i = 0; i < table->capacity; i++) {
 		struct hash_bin_link *link = table->bins[i];
 		while (link != NULL) {
@@ -118,21 +136,24 @@ void hash_walk(struct hash_table *table, void *(func)(char *key, void *value)) {
 
 /********** MAIN **********/
 
-void print(char *key, char *value) {
-	fprintf(stderr, "<%s, %s, %d>\n", key, value, hash_string(key));
+void print(char *key, void *value) {
+//	fprintf(stderr, "<%s, %s, %d>\n", key, (char *) value, hash_string(key));
 }
 
-int main() {
-	clock_t t1 = clock();
+void test() {
 	const int INIT_CAPACITY = 1000000;
 	struct hash_table* table = hash_create(INIT_CAPACITY);
+	char **table_contents = malloc(INIT_CAPACITY * 2 * sizeof(char *));
+	
 	for (int i = 0; i < INIT_CAPACITY * 2; i++) {
 		char *buffer = malloc(10 * sizeof(char));
 		sprintf(buffer, "%d", i);
+
+		table_contents[i] = buffer;
 		hash_put(table, buffer, buffer);
 	}
 
-//	hash_walk(table, *print);
+	hash_walk(table, print);
 
 	for (int i = 0; i < INIT_CAPACITY * 2; i++) {
 		char *buffer = malloc(10 * sizeof(char));
@@ -140,10 +161,22 @@ int main() {
 
 		char *received = hash_get(table, buffer);
 		if (strcmp(buffer, received) != 0) {
-			fprintf(stderr, "%d expected, %d received", buffer, received);
+			fprintf(stderr, "%s expected, %s received", buffer, received);
 			break;
 		}
+		free(buffer);
 	}
+
+	hash_destroy(table);
+	for (int i = 0; i < INIT_CAPACITY * 2; i++) {
+		free(table_contents[i]);
+	}
+	free(table_contents);
+}
+
+int main() {
+	clock_t t1 = clock();
+	test();
 	clock_t t2 = clock();
-	printf("%d", t2-t1);
+	printf("%ld microseconds\n", t2-t1);
 }
